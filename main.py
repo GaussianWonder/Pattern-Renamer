@@ -201,5 +201,6 @@ for file in os.listdir(directory):
         print(renamed)
     else:
         print(renamed)
-        # os.rename(filepath, filepathRenamed)
-
+        os.rename(filepath, filepathRenamed)
+        
+print('DONE')
