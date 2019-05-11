@@ -10,7 +10,8 @@ def errorParsingArguments():
 def showHelp():
     print('--path     | -p     => Path to folder')
     print('--match    | -m     => Pattern to match')
-    print('--white-sp | -wp    => White space is a separator\n')
+    print('--white-sp | -wp    => White space ends \'&\'')
+    print('--print    | -pr    => Print instead of renaming (Testing purpose)')
     print('Pattern :  (encapsulate in \" \")     ')
     print('     % => Any string combination to be ignored')
     print('     @ => Any number NOT to be ignored (stops at character  | raw ascii)')
@@ -28,7 +29,8 @@ if len(sys.argv) == 1:
 
 path    = ''
 pattern = ''
-whiteSeparator = True # Default must be False !! CHANGE THIS
+whiteSeparator = False
+printOnly = False
 
 #scan arguments
 sz = len(sys.argv)
@@ -39,6 +41,8 @@ while(i < sz):
     if arg == '--help'  or arg == '-h':
         showHelp()
         sys.exit(0)
+    elif arg == '--print' or arg == '-pr':
+        printOnly = True
     elif (arg == '--path'  or arg == '-p') and i + 1 < sz:
         i += 1
         path = sys.argv[i]
@@ -61,9 +65,9 @@ if path == '' or pattern == '':
 print('Using path: '    + path)
 print('Using pattern: ' + pattern)
 if whiteSeparator == True:
-    print('Using white space as a separator\n')
+    print('White space WILL interfere when using \'&\'\n')
 else:
-    print('Ignoring white space (deleting it between @ and &)\n')
+    print('White space WILL NOT interfere when using \'&\'\n')
 
 # SETUP DONE => FILE RENAMER <=============================================================
 
@@ -120,17 +124,17 @@ def rename(string, patternArray):
             while i < len(modStr) and modStr[i] >= '0' and modStr[i] <='9':
                 i += 1
 
-            endIndex = i - 1
+            endIndex = i
             j = 0
             while endIndex < len(modStr) and j < len(endMatch) and modStr[endIndex] == endMatch[j]:
-                endIndex += pattern
+                endIndex += 1
                 j += 1
 
             #didn't find a matching end
             if j < len(endMatch):
                 continue
         #search the last string ending with the desired endMatch
-        else:
+        elif pattern[i] == '&':
             i = startIndex + len(startMatch)
             endIndex = i
             if len(endMatch) == 0:
@@ -145,23 +149,36 @@ def rename(string, patternArray):
                     endIndex = len(modStr) - 1
             else:
                 #search last matched
-                matchedLast = -1
-                while endIndex < len(modStr):
-                    if modStr[endIndex] == pattern[0]:
-                        j = endIndex + 1
-                        k = 1
-                        while j < len(modStr) and k < len(pattern) and modStr[j] == pattern[k]:
-                            j += 1
-                            k += 1
-                        
-                        #if found
-                        if k >= len(pattern):
-                            matchedLast = j - 1
-                    endIndex += 1
-                endIndex = matchedLast
+                if whiteSeparator == False:
+                    indexFound = modStr.find(endMatch, endIndex)
+                    if indexFound != -1:
+                        while indexFound != -1:
+                            endIndex = indexFound + len(endMatch) - 1
+                            indexFound = modStr.find(endMatch, endIndex + 1)
+                    else:
+                        endIndex = -1
+                else:
+                    whiteSpace = modStr.find(' ', endIndex)
+                    indexFound = modStr.find(endMatch, endIndex)
 
-        if endIndex == -1 or endIndex >= len(modStr):
+                    if indexFound == -1 and whiteSpace == -1:
+                        continue
+                    
+                    if (whiteSpace != -1 and indexFound == -1) or (whiteSpace != -1 and indexFound != -1 and whiteSpace <= indexFound):
+                        endIndex = whiteSpace
+                    else:
+                        if indexFound != -1:
+                            while indexFound != -1:
+                                endIndex = indexFound + len(endMatch) - 1
+                                indexFound = modStr.find(endMatch, endIndex + 1)
+                        else:
+                            endIndex = -1   
+
+        if endIndex == -1:
             continue
+        
+        if endIndex >= len(modStr):
+                endIndex = len(modStr) - 1
 
         #delete mid content
         modStr = modStr[:startIndex] + modStr[endIndex + 1:]
@@ -179,6 +196,10 @@ for file in os.listdir(directory):
 
     renamed = rename(name, patternsToSearch)
     filepathRenamed = os.path.join(path, renamed + extension)
-    print(renamed)
-    # os.rename(filepath, 'b.kml')
+
+    if printOnly == True:
+        print(renamed)
+    else:
+        print(renamed)
+        # os.rename(filepath, filepathRenamed)
 
