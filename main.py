@@ -124,11 +124,15 @@ def rename(string, patternArray):
             while i < len(modStr) and modStr[i] >= '0' and modStr[i] <='9':
                 i += 1
 
-            endIndex = i
-            j = 0
-            while endIndex < len(modStr) and j < len(endMatch) and modStr[endIndex] == endMatch[j]:
-                endIndex += 1
-                j += 1
+            if len(endMatch) == 0:
+                endIndex = i - 1
+                j = len(endMatch)
+            else:
+                endIndex = i
+                j = 0
+                while endIndex < len(modStr) and j < len(endMatch) and modStr[endIndex] == endMatch[j]:
+                    endIndex += 1
+                    j += 1
 
             #didn't find a matching end
             if j < len(endMatch):
